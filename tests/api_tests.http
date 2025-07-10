@@ -1,0 +1,717 @@
+### =============================================================================
+### SPORTS BETTING BFF API - COMPREHENSIVE TEST SUITE
+### =============================================================================
+###
+### Este archivo contiene pruebas completas para nuestro BFF (Backend for Frontend)
+### de apuestas deportivas. Las pruebas están organizadas por funcionalidad y deben
+### ejecutarse en secuencia para simular un flujo de usuario real.
+###
+### INSTRUCCIONES:
+### 1. Asegúrate de que el BFF esté corriendo en http://localhost:8000
+### 2. El BFF se conecta automáticamente a https://api-kurax-demo-jos.uk
+### 3. Ejecuta las pruebas en orden secuencial
+### 4. Copia los tokens JWT de las respuestas de login para usarlos en pruebas posteriores
+###
+### =============================================================================
+
+### Variables globales para las pruebas
+### En un entorno real, estas estarían en un archivo de configuración separado
+@baseUrl = http://localhost:8000
+@contentType = application/json
+
+### Token JWT - Se actualiza después de cada login exitoso
+### IMPORTANTE: Copia el token de la respuesta de login y reemplaza aquí
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### =============================================================================
+### SECCIÓN 1: HEALTH CHECK Y CONECTIVIDAD DEL BFF
+### =============================================================================
+###
+### Estas pruebas verifican que el BFF esté funcionando y que pueda conectarse
+### al backend externo correctamente.
+
+### 1.1 Health Check del BFF - Verificar que la API esté funcionando
+GET {{baseUrl}}/health
+Accept: {{contentType}}
+
+### Respuesta esperada:
+### {
+###   "status": "healthy" | "degraded",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "version": "1.0.0",
+###   "environment": "development",
+###   "backend": {
+###     "healthy": true,
+###     "url": "https://api-kurax-demo-jos.uk",
+###     "response_time_avg": 150.5,
+###     "cache_hit_rate": 45.2
+###   },
+###   "cache": {
+###     "enabled": true,
+###     "size": 25,
+###     "ttl_seconds": 300
+###   }
+### }
+
+### 1.2 Root Endpoint - Información de la API
+GET {{baseUrl}}/
+Accept: {{contentType}}
+
+### Respuesta esperada:
+### {
+###   "name": "Sports Betting BFF",
+###   "version": "1.0.0",
+###   "description": "Backend for Frontend (BFF) for Sports Betting System",
+###   "documentation": "/docs",
+###   "health_check": "/health",
+###   "endpoints": {
+###     "authentication": "/api/auth",
+###     "events": "/api/events",
+###     "betting": "/api/bets"
+###   },
+###   "status": "operational",
+###   "timestamp": "2024-01-01T00:00:00.000Z"
+### }
+
+### 1.3 API Stats - Estadísticas del BFF
+GET {{baseUrl}}/api/stats
+Accept: {{contentType}}
+
+### Respuesta esperada:
+### {
+###   "backend_service": {
+###     "requests_made": 45,
+###     "cache_hits": 12,
+###     "errors": 0,
+###     "average_response_time": 145.2,
+###     "cache_hit_rate": 26.67,
+###     "cache_size": 8,
+###     "backend_url": "https://api-kurax-demo-jos.uk"
+###   },
+###   "application": {
+###     "version": "1.0.0",
+###     "debug_mode": true,
+###     "cache_enabled": true,
+###     "cors_origins": 4
+###   },
+###   "generated_at": "2024-01-01T00:00:00.000Z"
+### }
+
+### =============================================================================
+### SECCIÓN 2: AUTENTICACIÓN Y GESTIÓN DE USUARIOS (BFF)
+### =============================================================================
+###
+### Estas pruebas cubren el flujo de autenticación a través del BFF,
+### que agrega validaciones adicionales y enriquece las respuestas.
+
+### 2.1 Registro de Usuario - Caso Exitoso con Validaciones BFF
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "testuser@example.com",
+  "password": "SecurePassword123!",
+  "full_name": "Test User"
+}
+
+### Respuesta esperada (enriquecida por el BFF):
+### HTTP 201 Created
+### {
+###   "success": true,
+###   "message": "User registered successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "token": "eyJ...",
+###     "email": "testuser@example.com",
+###     "full_name": "Test User",
+###     "balance": 1000.0,
+###     "expires_at": "...",
+###     "permissions": ["user"]
+###   }
+### }
+
+### 2.2 Registro de Usuario - Validación Mejorada del BFF (Error Esperado)
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "invalid-email",
+  "password": "123",
+  "full_name": "X"
+}
+
+### Respuesta esperada (validación del BFF):
+### HTTP 422 Unprocessable Entity
+### {
+###   "success": false,
+###   "error": "ValidationError",
+###   "message": "Request validation failed",
+###   "details": {
+###     "validation_errors": [
+###       "email: Please provide a valid email address",
+###       "password: Password must be at least 6 characters long",
+###       "full_name: Full name must be at least 2 characters long"
+###     ],
+###     "error_count": 3
+###   },
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "path": "/api/auth/register"
+### }
+
+### 2.3 Login de Usuario - Caso Exitoso
+### IMPORTANTE: Copia el token de esta respuesta para usarlo en las siguientes pruebas
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "testuser@example.com",
+  "password": "SecurePassword123!"
+}
+
+### Respuesta esperada (enriquecida por el BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Login successful",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+###     "email": "testuser@example.com",
+###     "full_name": "Test User",
+###     "balance": 1000.0,
+###     "expires_at": "2024-01-08T00:00:00Z",
+###     "permissions": ["user"]
+###   }
+### }
+
+### 2.4 Obtener Perfil de Usuario (Enriquecido por el BFF)
+GET {{baseUrl}}/api/auth/profile
+Authorization: Bearer {{authToken}}
+Accept: {{contentType}}
+
+### Respuesta esperada (con enriquecimientos del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Profile retrieved successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "id": 1,
+###     "email": "testuser@example.com",
+###     "fullName": "Test User",
+###     "balance": 1000.0,
+###     "createdAt": "...",
+###     "totalBets": 0,
+###     "totalBetAmount": 0,
+###     "profile_completion": 75.0,
+###     "last_activity": "2024-01-01T12:00:00Z",
+###     "notification_count": 0
+###   }
+### }
+
+### 2.5 Perfil sin Autenticación (Error Esperado)
+GET {{baseUrl}}/api/auth/profile
+Accept: {{contentType}}
+
+### Respuesta esperada:
+### HTTP 403 Forbidden
+
+### 2.6 Logout de Usuario
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+### =============================================================================
+### SECCIÓN 3: GESTIÓN DE EVENTOS DEPORTIVOS (BFF ENRIQUECIDO)
+### =============================================================================
+###
+### Estas pruebas verifican la funcionalidad de eventos a través del BFF,
+### que agrega análisis de popularidad, filtros adicionales y cache inteligente.
+
+### 3.1 Obtener Todos los Eventos con Enriquecimientos del BFF
+GET {{baseUrl}}/api/events/
+Accept: {{contentType}}
+
+### Respuesta esperada (enriquecida por el BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Found 3 events",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "events": [
+###       {
+###         "id": 1,
+###         "name": "Real Madrid vs Barcelona - El Clásico",
+###         "team_a": "Real Madrid",
+###         "team_b": "Barcelona",
+###         "team_a_odds": 2.10,
+###         "team_b_odds": 1.95,
+###         "event_date": "2024-01-15T20:00:00Z",
+###         "status": "Upcoming",
+###         "can_place_bets": true,
+###         "time_until_event": "7 days",
+###         "total_bets_amount": 1500.0,
+###         "total_bets_count": 25,
+###         "popularity_score": 85.5
+###       }
+###     ],
+###     "total_count": 3,
+###     "filtered_count": 3,
+###     "cache_info": {
+###       "cached": false,
+###       "cache_expires_at": "2024-01-01T00:05:00.000Z"
+###     }
+###   }
+### }
+
+### 3.2 Obtener Eventos con Filtros del BFF
+GET {{baseUrl}}/api/events/?team=Madrid&include_stats=true&limit=10
+Accept: {{contentType}}
+
+### 3.3 Obtener Evento Específico con Detalles Enriquecidos
+GET {{baseUrl}}/api/events/1?include_recent_bets=true&include_statistics=true
+Accept: {{contentType}}
+
+### Respuesta esperada (con enriquecimientos del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Event details retrieved successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "id": 1,
+###     "name": "Real Madrid vs Barcelona - El Clásico",
+###     "team_a": "Real Madrid",
+###     "team_b": "Barcelona",
+###     "team_a_odds": 2.10,
+###     "team_b_odds": 1.95,
+###     "event_date": "2024-01-15T20:00:00Z",
+###     "status": "Upcoming",
+###     "can_place_bets": true,
+###     "time_until_event": "7 days",
+###     "popularity_score": 85.5,
+###     "betting_statistics": {
+###       "total_bets": 25,
+###       "total_amount": 1500.0,
+###       "team_a_percentage": 60.0,
+###       "team_b_percentage": 40.0,
+###       "betting_trend": "increasing"
+###     },
+###     "recent_bets": [
+###       {
+###         "user": "User123",
+###         "amount": 100.0,
+###         "team": "Real Madrid",
+###         "timestamp": "2024-01-01T12:00:00Z"
+###       }
+###     ],
+###     "recommendations": [
+###       {
+###         "type": "popular",
+###         "reason": "High user interest in this event",
+###         "confidence": 0.8
+###       }
+###     ],
+###     "related_events": [],
+###     "social_metrics": {
+###       "buzz_score": 8.55,
+###       "sentiment": "positive",
+###       "mentions": 50
+###     }
+###   }
+### }
+
+### 3.4 Obtener Eventos Populares (Algoritmo del BFF)
+GET {{baseUrl}}/api/events/trending/popular?limit=5
+Accept: {{contentType}}
+
+### Respuesta esperada (algoritmo propio del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Found 5 popular events",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "events": [
+###       {
+###         "id": 1,
+###         "name": "Real Madrid vs Barcelona - El Clásico",
+###         "teamA": "Real Madrid",
+###         "teamB": "Barcelona",
+###         "popularity_score": 95.5,
+###         "trending_rank": 1
+###       }
+###     ],
+###     "algorithm_version": "1.0",
+###     "last_updated": "2024-01-01T00:00:00.000Z"
+###   }
+### }
+
+### 3.5 Buscar Eventos por Equipo (Filtro del BFF)
+GET {{baseUrl}}/api/events/?team=Liverpool&date_from=2024-01-01T00:00:00&date_to=2024-01-31T23:59:59
+Accept: {{contentType}}
+
+### =============================================================================
+### SECCIÓN 4: GESTIÓN DE APUESTAS (BFF CON VALIDACIONES AVANZADAS)
+### =============================================================================
+###
+### Esta sección prueba el sistema de apuestas con todas las mejoras del BFF:
+### validaciones adicionales, análisis de riesgo, auditoría y enriquecimientos.
+
+### 4.1 Previsualizar Apuesta con Análisis de Riesgo (Funcionalidad del BFF)
+POST {{baseUrl}}/api/bets/preview
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "event_id": 1,
+  "selected_team": "Real Madrid",
+  "amount": 100.00
+}
+
+### Respuesta esperada (con análisis del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Bet preview generated successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "isValid": true,
+###     "errors": [],
+###     "amount": 100.00,
+###     "currentOdds": 2.10,
+###     "potentialWin": 210.00,
+###     "potentialProfit": 110.00,
+###     "currentBalance": 1000.00,
+###     "balanceAfterBet": 900.00,
+###     "eventName": "Real Madrid vs Barcelona - El Clásico",
+###     "selectedTeam": "Real Madrid",
+###     "message": "Bet preview is valid. You can proceed to create this bet.",
+###     "risk_analysis": {
+###       "level": "low",
+###       "description": "This is a relatively safe bet with good chances of winning",
+###       "recommendation": "Consider this bet if you prefer steady, consistent returns"
+###     },
+###     "historical_context": {
+###       "similar_bets_last_month": 0,
+###       "average_odds_this_event": 2.10,
+###       "odds_trend": "stable"
+###     },
+###     "suggestions": []
+###   }
+### }
+
+### 4.2 Crear Apuesta con Auditoría Completa del BFF
+POST {{baseUrl}}/api/bets/
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "event_id": 1,
+  "selected_team": "Real Madrid",
+  "amount": 100.00
+}
+
+### Respuesta esperada (con auditoría del BFF):
+### HTTP 201 Created
+### {
+###   "success": true,
+###   "message": "Bet created successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "id": 1,
+###     "event_id": 1,
+###     "event_name": "Real Madrid vs Barcelona - El Clásico",
+###     "selected_team": "Real Madrid",
+###     "amount": 100.00,
+###     "odds": 2.10,
+###     "potential_win": 210.00,
+###     "status": "Active",
+###     "created_at": "2024-01-01T12:00:00Z",
+###     "can_be_cancelled": true,
+###     "time_remaining": "7 days",
+###     "transaction_id": "bet_20240101_120000_123456",
+###     "confirmation_code": "BET000001",
+###     "processing_time": {
+###       "validation_ms": 15.25,
+###       "backend_ms": 145.75,
+###       "total_ms": 161.0
+###     }
+###   }
+### }
+
+### 4.3 Intentar Apuesta Excesiva (Validación del BFF)
+POST {{baseUrl}}/api/bets/
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "event_id": 1,
+  "selected_team": "Real Madrid",
+  "amount": 10000.00
+}
+
+### Respuesta esperada (rechazo por el BFF):
+### HTTP 400 Bad Request
+### {
+###   "success": false,
+###   "error": "ValidationError",
+###   "message": "Bet validation failed",
+###   "details": {
+###     "errors": [
+###       "Maximum bet amount through BFF is $5000"
+###     ],
+###     "transaction_id": "bet_20240101_120030_789012"
+###   },
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "path": "/api/bets/"
+### }
+
+### 4.4 Obtener Mis Apuestas con Paginación y Estadísticas
+GET {{baseUrl}}/api/bets/my-bets?page=1&page_size=10&include_statistics=true
+Authorization: Bearer {{authToken}}
+Accept: {{contentType}}
+
+### Respuesta esperada (con paginación del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Retrieved 1 bets",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "bets": [
+###       {
+###         "id": 1,
+###         "event_id": 1,
+###         "event_name": "Real Madrid vs Barcelona - El Clásico",
+###         "selected_team": "Real Madrid",
+###         "amount": 100.00,
+###         "odds": 2.10,
+###         "potential_win": 210.00,
+###         "status": "Active",
+###         "created_at": "2024-01-01T12:00:00Z",
+###         "can_be_cancelled": true,
+###         "time_remaining": "7 days",
+###         "profit_loss": null,
+###         "is_winning": null
+###       }
+###     ],
+###     "pagination": {
+###       "current_page": 1,
+###       "page_size": 10,
+###       "total_items": 1,
+###       "total_pages": 1,
+###       "has_next": false,
+###       "has_previous": false
+###     },
+###     "statistics": {
+###       "total_bets": 1,
+###       "active_bets": 1,
+###       "won_bets": 0,
+###       "lost_bets": 0,
+###       "total_amount_bet": 100.00,
+###       "total_winnings": 0,
+###       "current_potential_win": 210.00,
+###       "win_rate": 0,
+###       "average_bet_amount": 100.00,
+###       "net_profit": -100.00,
+###       "performance_rating": "Beginner",
+###       "risk_profile": "Conservative"
+###     }
+###   }
+### }
+
+### 4.5 Dashboard de Apuestas (Agregación del BFF)
+GET {{baseUrl}}/api/bets/dashboard
+Authorization: Bearer {{authToken}}
+Accept: {{contentType}}
+
+### Respuesta esperada (agregación completa del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Dashboard generated successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "user_profile": {
+###       "id": 1,
+###       "email": "testuser@example.com",
+###       "balance": 900.0
+###     },
+###     "recent_bets": [
+###       {
+###         "id": 1,
+###         "eventName": "Real Madrid vs Barcelona - El Clásico",
+###         "amount": 100.00,
+###         "status": "Active"
+###       }
+###     ],
+###     "statistics": {
+###       "total_bets": 1,
+###       "active_bets": 1,
+###       "performance_rating": "Beginner",
+###       "risk_profile": "Conservative"
+###     },
+###     "available_events": [
+###       {
+###         "id": 1,
+###         "name": "Real Madrid vs Barcelona - El Clásico"
+###       }
+###     ],
+###     "notifications": [
+###       {
+###         "type": "welcome",
+###         "message": "Welcome to sports betting! Start with small bets to learn the system",
+###         "priority": "info"
+###       }
+###     ],
+###     "recommendations": [
+###       {
+###         "type": "performance",
+###         "message": "You're just getting started! Consider exploring different betting strategies",
+###         "priority": "low"
+###       }
+###     ],
+###     "metadata": {
+###       "generated_at": "2024-01-01T00:00:00.000Z",
+###       "processing_time_ms": 245.75,
+###       "data_sources": 4,
+###       "cache_status": "fresh"
+###     }
+###   }
+### }
+
+### 4.6 Cancelar Apuesta con Auditoría
+DELETE {{baseUrl}}/api/bets/1
+Authorization: Bearer {{authToken}}
+
+### Respuesta esperada (con auditoría del BFF):
+### HTTP 200 OK
+### {
+###   "success": true,
+###   "message": "Bet cancelled successfully",
+###   "timestamp": "2024-01-01T00:00:00.000Z",
+###   "data": {
+###     "betId": 1,
+###     "status": "Cancelled",
+###     "cancelledAt": "2024-01-01T12:30:00Z",
+###     "message": "Bet has been successfully cancelled and amount refunded",
+###     "transaction_id": "cancel_1_20240101_123000_456789",
+###     "cancelled_at": "2024-01-01T12:30:00.000Z"
+###   }
+### }
+
+### =============================================================================
+### SECCIÓN 5: PRUEBAS DE VALIDACIÓN Y SEGURIDAD DEL BFF
+### =============================================================================
+###
+### Estas pruebas verifican que las validaciones adicionales del BFF funcionen
+### correctamente y que la seguridad esté implementada apropiadamente.
+
+### 5.1 Validación de Email con Caracteres Especiales
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "test<script>@example.com",
+  "password": "SecurePassword123!",
+  "full_name": "Test<script>User"
+}
+
+### Respuesta esperada:
+### HTTP 422 Unprocessable Entity (validación del BFF)
+
+### 5.2 Validación de Apuesta con Equipo Inválido
+POST {{baseUrl}}/api/bets/preview
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "event_id": 1,
+  "selected_team": "Team<script>alert('xss')</script>",
+  "amount": 100.00
+}
+
+### Respuesta esperada:
+### HTTP 200 OK con errors en data (validación del BFF)
+
+### 5.3 Intentar Acceso sin Token
+GET {{baseUrl}}/api/bets/my-bets
+Accept: {{contentType}}
+
+### Respuesta esperada:
+### HTTP 403 Forbidden
+
+### 5.4 Rate Limiting - Múltiples Peticiones Rápidas
+### Ejecutar estas peticiones rápidamente
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+GET {{baseUrl}}/health
+
+### Algunas podrían retornar:
+### HTTP 429 Too Many Requests
+
+### =============================================================================
+### SECCIÓN 6: PRUEBAS DE RENDIMIENTO Y CACHE DEL BFF
+### =============================================================================
+###
+### Estas pruebas verifican que las optimizaciones del BFF funcionen correctamente.
+
+### 6.1 Primera Petición de Eventos (Sin Cache)
+GET {{baseUrl}}/api/events/
+Accept: {{contentType}}
+
+### 6.2 Segunda Petición de Eventos (Con Cache)
+GET {{baseUrl}}/api/events/
+Accept: {{contentType}}
+
+### Verificar en la respuesta que cache_info.cached = true en la segunda petición
+
+### 6.3 Verificar Headers de Rendimiento
+### Todas las respuestas deben incluir:
+### X-Request-ID: req_1234567890_123456
+### X-Process-Time: 25.50
+
+### =============================================================================
+### NOTAS IMPORTANTES PARA LAS PRUEBAS DEL BFF
+### =============================================================================
+###
+### 1. DIFERENCIAS CON EL BACKEND DIRECTO:
+###    - El BFF agrega validaciones adicionales más estrictas
+###    - Las respuestas están enriquecidas con información adicional
+###    - Se incluye análisis de riesgo y recomendaciones
+###    - Auditoría completa de transacciones
+###    - Cache inteligente para mejorar rendimiento
+###
+### 2. FUNCIONALIDADES ÚNICAS DEL BFF:
+###    - Análisis de popularidad de eventos
+###    - Agregación de datos del dashboard
+###    - Validaciones de seguridad adicionales
+###    - Enriquecimiento de respuestas con contexto
+###    - Paginación optimizada
+###
+### 3. MANEJO DE TOKENS:
+###    - El BFF maneja tokens JWT del backend automáticamente
+###    - Tokens son válidos por 7 días por defecto
+###    - El BFF no modifica la autenticación, solo la enriquece
+###
+### 4. CONECTIVIDAD:
+###    - El BFF se conecta a https://api-kurax-demo-jos.uk automáticamente
+###    - Las pruebas del BFF pueden ejecutarse independientemente
+###    - El health check muestra el estado de conectividad del backend
+###
+### 5. OPTIMIZACIONES:
+###    - Cache inteligente con TTL de 5 minutos para eventos
+###    - Peticiones paralelas en el dashboard
+###    - Rate limiting configurable
+###    - Logging estructurado para debugging
+###
+### =============================================================================
