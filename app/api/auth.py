@@ -61,7 +61,7 @@ async def register_user(user_data: UserRegistrationRequest):
 
         return DataResponse(
             message="User registered successfully",
-            data=auth_data.model_dump()
+            data=auth_data.dict()
         )
 
     except HTTPException as e:
@@ -116,7 +116,7 @@ async def login_user(credentials: UserLoginRequest):
 
         return DataResponse(
             message="Login successful",
-            data=auth_data.model_dump()
+            data=auth_data.dict()
         )
 
     except HTTPException as e:

@@ -144,7 +144,7 @@ class ProfileDebugger:
                 data=test_data
             )
             
-            logger.info(f"✅ DataResponse created: {response.model_dump()}")
+            logger.info(f"✅ DataResponse created: {response.dict()}")
             
         except Exception as e:
             logger.error(f"❌ Error creating DataResponse: {str(e)}")
