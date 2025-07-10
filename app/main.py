@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, Any
 
-import structlog
+import logging
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -20,30 +20,14 @@ from app.core.config import settings
 from app.api import auth, events, bets
 from app.services.backend_service import backend_service
 
-# Configurar logging estructurado para producción
-structlog.configure(
-    processors=[
-        structlog.stdlib.filter_by_level,          # Filtrar por nivel de log
-        structlog.stdlib.add_logger_name,          # Agregar nombre del logger
-        structlog.stdlib.add_log_level,            # Agregar nivel de log
-        structlog.stdlib.PositionalArgumentsFormatter(),  # Formatear argumentos
-        structlog.processors.TimeStamper(fmt="iso"),       # Timestamp ISO
-        # Info de stack si está disponible
-        structlog.processors.StackInfoRenderer(),
-        # Formatear información de excepciones
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),             # Decodificar unicode
-        # Renderizar como JSON para producción
-        structlog.processors.JSONRenderer()
-    ],
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    wrapper_class=structlog.stdlib.BoundLogger,
-    cache_logger_on_first_use=True,
+# Configurar logging básico para Lambda
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Obtener logger estructurado
-logger = structlog.get_logger(__name__)
+# Obtener logger estándar
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

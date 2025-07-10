@@ -1,5 +1,5 @@
 # app/models/schemas.py
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -42,7 +42,7 @@ class UserRegistrationRequest(BaseModel):
     Schema para registro de usuarios.
     Incluye validaciones mejoradas para el frontend.
     """
-    email: EmailStr = Field(..., description="Email válido del usuario")
+    email: str = Field(..., description="Email del usuario")
     password: str = Field(..., min_length=6, description="Contraseña segura")
     full_name: str = Field(..., min_length=2, max_length=100,
                            description="Nombre completo")
@@ -75,7 +75,7 @@ class UserRegistrationRequest(BaseModel):
 
 class UserLoginRequest(BaseModel):
     """Schema para login simplificado."""
-    email: EmailStr
+    email: str
     password: str = Field(..., min_length=1)
 
 

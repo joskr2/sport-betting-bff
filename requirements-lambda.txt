@@ -1,12 +1,9 @@
-# Requirements optimizados para AWS Lambda
-# No incluye uvicorn[standard] porque Mangum lo reemplaza
+# Requirements completos para AWS Lambda
+# Todas las dependencias necesarias
 
-fastapi>=0.104.0
-pydantic>=2.5.0
-pydantic-settings>=2.1.0
-httpx>=0.25.0
-cachetools>=5.3.0
-structlog>=23.2.0
-email-validator>=2.1.0
-python-dotenv>=1.0.0
-mangum>=0.19.0
+fastapi==0.104.1
+pydantic==1.10.22
+httpx==0.25.2
+cachetools==5.3.0
+python-dotenv==1.0.0
+mangum==0.19.0
