@@ -34,12 +34,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     Maneja el ciclo de vida de la aplicación.
-    
+
     Esta función es como el gerente de un hotel que se encarga de abrir
     por la mañana (inicialización) y cerrar por la noche (limpieza).
     En FastAPI, esto nos permite ejecutar código cuando la aplicación
     inicia y cuando se cierra.
-    
+
     Es especialmente útil para:
     - Inicializar conexiones a bases de datos
     - Cargar configuraciones
@@ -48,8 +48,8 @@ async def lifespan(app: FastAPI):
     """
     # Código de inicialización (startup)
     try:
-        logger.info("Starting Sports Betting BFF",
-                    version=settings.app_version)
+        logger.info(
+            f"Starting Sports Betting BFF version {settings.app_version}")
 
         # Verificar conectividad con el backend
         await _verify_backend_connectivity()
@@ -63,8 +63,7 @@ async def lifespan(app: FastAPI):
         yield
 
     except Exception as e:
-        logger.error("Failed to start application", error=str(e),
-                     traceback=traceback.format_exc())
+        logger.error(f"Failed to start application: {str(e)}")
         raise
 
     finally:
@@ -137,11 +136,11 @@ app.add_middleware(
 async def log_requests_middleware(request: Request, call_next):
     """
     Middleware para logging detallado de peticiones HTTP.
-    
+
     Este middleware es como el sistema de seguridad de un edificio
     que registra quién entra, a qué hora, qué hace, y cuánto tiempo
     se queda. Es esencial para debugging y monitoreo.
-    
+
     La información que capturamos incluye:
     - Detalles de la petición (método, URL, headers importantes)
     - Tiempo de procesamiento
@@ -159,13 +158,7 @@ async def log_requests_middleware(request: Request, call_next):
 
     # Log de petición entrante
     logger.info(
-        "Request started",
-        request_id=request_id,
-        method=request.method,
-        url=str(request.url),
-        client_ip=client_ip,
-        user_agent=user_agent,
-        content_length=request.headers.get("content-length", 0)
+        f"Request started - ID: {request_id}, Method: {request.method}, URL: {str(request.url)}, Client: {client_ip}"
     )
 
     try:
@@ -177,11 +170,7 @@ async def log_requests_middleware(request: Request, call_next):
 
         # Log de respuesta exitosa
         logger.info(
-            "Request completed",
-            request_id=request_id,
-            status_code=response.status_code,
-            process_time_ms=round(process_time * 1000, 2),
-            response_size=response.headers.get("content-length", "unknown")
+            f"Request completed - ID: {request_id}, Status: {response.status_code}, Time: {round(process_time * 1000, 2)}ms"
         )
 
         # Agregar headers personalizados a la respuesta
@@ -196,11 +185,7 @@ async def log_requests_middleware(request: Request, call_next):
 
         # Log de error
         logger.error(
-            "Request failed",
-            request_id=request_id,
-            error=str(e),
-            process_time_ms=round(process_time * 1000, 2),
-            traceback=traceback.format_exc()
+            f"Request failed - ID: {request_id}, Error: {str(e)}, Time: {round(process_time * 1000, 2)}ms"
         )
 
         # Re-lanzar la excepción para que sea manejada por otros middleware
@@ -213,11 +198,11 @@ async def log_requests_middleware(request: Request, call_next):
 async def rate_limiting_middleware(request: Request, call_next):
     """
     Middleware básico de rate limiting.
-    
+
     Este middleware es como un portero de discoteca que controla
     cuántas personas pueden entrar en un período determinado.
     Previene abuso del sistema y ataques de denegación de servicio.
-    
+
     En una implementación más avanzada, usarías Redis para
     almacenar contadores distribuidos entre múltiples instancias.
     """
@@ -229,9 +214,7 @@ async def rate_limiting_middleware(request: Request, call_next):
         return response
     else:
         logger.warning(
-            "Rate limit exceeded",
-            client_ip=client_ip,
-            url=str(request.url)
+            f"Rate limit exceeded - Client: {client_ip}, URL: {str(request.url)}"
         )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -248,17 +231,13 @@ async def rate_limiting_middleware(request: Request, call_next):
 async def http_exception_handler(request: Request, exc: HTTPException):
     """
     Manejador para excepciones HTTP.
-    
+
     Este manejador toma excepciones HTTP (como 404, 401, etc.)
     y las convierte en respuestas JSON consistentes que el
     frontend puede entender y manejar apropiadamente.
     """
     logger.warning(
-        "HTTP exception occurred",
-        status_code=exc.status_code,
-        detail=exc.detail,
-        url=str(request.url),
-        method=request.method
+        f"HTTP exception occurred - Status: {exc.status_code}, Detail: {exc.detail}, URL: {str(request.url)}, Method: {request.method}"
     )
 
     return JSONResponse(
@@ -277,7 +256,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
     Manejador para errores de validación de Pydantic.
-    
+
     Cuando el frontend envía datos que no cumplen con nuestros
     schemas, este manejador convierte los errores técnicos de
     Pydantic en mensajes amigables para el usuario.
@@ -290,10 +269,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         validation_errors.append(f"{field}: {message}")
 
     logger.warning(
-        "Validation error occurred",
-        errors=validation_errors,
-        url=str(request.url),
-        method=request.method
+        f"Validation error occurred - Errors: {validation_errors}, URL: {str(request.url)}, Method: {request.method}"
     )
 
     return JSONResponse(
@@ -316,19 +292,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def general_exception_handler(request: Request, exc: Exception):
     """
     Manejador para excepciones no capturadas.
-    
+
     Este es nuestro último recurso: cuando algo inesperado sucede,
     este manejador se asegura de que el usuario reciba una respuesta
     útil en lugar de un error crudo del servidor.
     """
     # Log detallado del error para debugging
     logger.error(
-        "Unhandled exception occurred",
-        error=str(exc),
-        error_type=type(exc).__name__,
-        url=str(request.url),
-        method=request.method,
-        traceback=traceback.format_exc()
+        f"Unhandled exception occurred - Type: {type(exc).__name__}, Error: {str(exc)}, URL: {str(request.url)}, Method: {request.method}"
     )
 
     # En desarrollo, mostrar más detalles del error
@@ -367,7 +338,7 @@ app.include_router(bets.router, prefix="/api")
 async def health_check():
     """
     Endpoint de verificación de salud.
-    
+
     Este endpoint es como el pulso de una persona: una forma rápida
     de verificar que todo esté funcionando correctamente. Es esencial
     para load balancers, sistemas de monitoreo, y deployments.
@@ -377,7 +348,7 @@ async def health_check():
         backend_health = await backend_service.health_check()
         backend_healthy = True
     except Exception as e:
-        logger.warning("Backend health check failed", error=str(e))
+        logger.warning(f"Backend health check failed: {str(e)}")
         backend_healthy = False
         backend_health = {"error": str(e)}
 
@@ -415,7 +386,7 @@ async def health_check():
 async def root():
     """
     Endpoint raíz que proporciona información de la API.
-    
+
     Este endpoint es como la recepción de una oficina: da
     información básica sobre qué servicios están disponibles
     y cómo acceder a ellos.
@@ -440,7 +411,7 @@ async def root():
 async def get_api_stats():
     """
     Endpoint para obtener estadísticas de la API.
-    
+
     Útil para monitoreo y debugging. Proporciona información
     sobre el rendimiento y uso de la aplicación.
     """
@@ -465,20 +436,18 @@ async def get_api_stats():
 async def _verify_backend_connectivity():
     """
     Verifica que podemos conectarnos al backend .NET.
-    
+
     Esta función es como verificar que el teléfono funciona
     antes de abrir una oficina de servicio al cliente.
     """
     try:
         health_response = await backend_service.health_check()
-        logger.info("Backend connectivity verified",
-                    backend_url=settings.backend_api_url)
+        logger.info(
+            f"Backend connectivity verified: {settings.backend_api_url}")
         return True
     except Exception as e:
         logger.error(
-            "Cannot connect to backend",
-            backend_url=settings.backend_api_url,
-            error=str(e)
+            f"Cannot connect to backend {settings.backend_api_url}: {str(e)}"
         )
         # En desarrollo, podríamos continuar sin backend para testing
         if settings.debug:
@@ -493,7 +462,7 @@ async def _verify_backend_connectivity():
 async def _initialize_application_components():
     """
     Inicializa componentes de la aplicación.
-    
+
     Esta función prepara todos los sistemas necesarios para
     que la aplicación funcione correctamente, como verificar
     configuraciones y inicializar cache.
@@ -509,7 +478,7 @@ async def _initialize_application_components():
 async def _cleanup_application_resources():
     """
     Limpia recursos cuando la aplicación se cierra.
-    
+
     Esta función es como apagar las luces y cerrar las puertas
     cuando termina el día de trabajo.
     """
@@ -526,10 +495,10 @@ _rate_limit_store: Dict[str, Dict[str, Any]] = {}
 async def _check_rate_limit(client_ip: str) -> bool:
     """
     Verificación simple de rate limiting en memoria.
-    
+
     Esta función implementa un algoritmo básico de sliding window
     para controlar el número de peticiones por cliente.
-    
+
     En un sistema de producción real, usarías:
     - Redis para storage distribuido
     - Algoritmos más sofisticados como token bucket
@@ -561,7 +530,7 @@ async def _check_rate_limit(client_ip: str) -> bool:
 def _get_error_type_from_status_code(status_code: int) -> str:
     """
     Convierte códigos de estado HTTP en tipos de error legibles.
-    
+
     Esta función ayuda a que los errores sean más comprensibles
     para el frontend y facilita el manejo de errores específicos.
     """
@@ -587,7 +556,7 @@ def _get_error_type_from_status_code(status_code: int) -> str:
 if __name__ == "__main__":
     """
     Configuración para ejecutar la aplicación directamente con Python.
-    
+
     Esto es útil durante el desarrollo para testing rápido,
     pero en producción usarías uvicorn con configuraciones específicas.
     """

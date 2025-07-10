@@ -2,7 +2,7 @@
 import httpx
 import asyncio
 from typing import Optional, Dict, Any, List
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 import logging
 import json
 from datetime import datetime, timedelta
@@ -214,10 +214,18 @@ class BackendService:
     async def register_user(self, user_data: Dict[str, str]) -> Dict[str, Any]:
         """Registrar nuevo usuario en el backend."""
         response = await self._make_request("POST", "/api/auth/register", data=user_data, use_cache=False)
+        
+        # Handle nested response format that sometimes occurs
+        if isinstance(response, dict) and "value" in response and isinstance(response["value"], dict):
+            actual_response = response["value"]
+            logger.info("Handled nested registration response format")
+        else:
+            actual_response = response
+            
         # La API externa devuelve {success: true, data: {...}}
-        if isinstance(response, dict) and "data" in response:
-            return response["data"]
-        return response
+        if isinstance(actual_response, dict) and "data" in actual_response:
+            return actual_response["data"]
+        return actual_response
 
     async def login_user(self, credentials: Dict[str, str]) -> Dict[str, Any]:
         """Autenticar usuario en el backend."""
@@ -230,11 +238,36 @@ class BackendService:
     async def get_user_profile(self, auth_token: str) -> Dict[str, Any]:
         """Obtener perfil del usuario autenticado."""
         headers = {"Authorization": f"Bearer {auth_token}"}
-        response = await self._make_request("GET", "/api/auth/profile", headers=headers, use_cache=False)
-        # La API externa devuelve {success: true, data: {...}}
-        if isinstance(response, dict) and "data" in response:
-            return response["data"]
-        return response
+        logger.info(f"Sending profile request to backend with token: {auth_token[:20]}...")
+        
+        try:
+            response = await self._make_request("GET", "/api/auth/profile", headers=headers, use_cache=False)
+            logger.info(f"Backend profile response type: {type(response)}")
+            logger.info(f"Backend profile response: {response}")
+            
+            # La API externa devuelve {success: true, data: {...}}
+            if isinstance(response, dict) and "data" in response:
+                return response["data"]
+            return response
+            
+        except HTTPException as e:
+            logger.error(f"Backend profile request failed: {e.detail}")
+            if e.status_code == 401:
+                # Provide more helpful error message for authentication issues
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired authentication token"
+                )
+            else:
+                # Re-raise other HTTP exceptions
+                raise
+            
+        except Exception as e:
+            logger.error(f"Unexpected error in get_user_profile: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Profile service temporarily unavailable"
+            )
 
     # === Métodos de Eventos ===
 

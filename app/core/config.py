@@ -29,7 +29,7 @@ class Settings:
         self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
 
         # Configuración CORS
-        origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080")
+        origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,https://betting-app-frontend-six.vercel.app,https://betting-app-frontend-ff29xnj8l-josues-projects-546cbe2a.vercel.app")
         if origins_str == "*":
             self.allowed_origins = ["*"]
         else:
