@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from mangum import Mangum
 
 # Importar nuestros componentes personalizados
 from app.core.config import settings
@@ -119,6 +120,8 @@ app = FastAPI(
     } if settings.debug else None
 )
 
+handler = Mangum(app)
+
 # === CONFIGURACIÓN DE MIDDLEWARE ===
 # Los middleware se ejecutan en orden, como capas de una cebolla.
 # La petición pasa por cada capa hacia adentro, y la respuesta
@@ -129,7 +132,7 @@ if not settings.debug:
     # En producción, solo permitir hosts específicos para prevenir ataques de host header
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*.yourdomain.com", "yourdomain.com", "localhost"]
+        allowed_hosts=["*"]
     )
 
 # 2. Middleware de CORS (Cross-Origin Resource Sharing)
