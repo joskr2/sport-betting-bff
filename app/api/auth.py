@@ -61,7 +61,7 @@ async def register_user(user_data: UserRegistrationRequest):
 
         return DataResponse(
             message="User registered successfully",
-            data=auth_data.dict()
+            data=auth_data.model_dump()
         )
 
     except HTTPException as e:
@@ -116,7 +116,7 @@ async def login_user(credentials: UserLoginRequest):
 
         return DataResponse(
             message="Login successful",
-            data=auth_data.dict()
+            data=auth_data.model_dump()
         )
 
     except HTTPException as e:
@@ -237,6 +237,23 @@ async def logout_user(request: Request):
     - Registrar actividad de logout
     - Limpiar datos temporales
     """
+    # Verificar que hay un token de autorización
+    authorization = request.headers.get("Authorization")
+    
+    if not authorization:
+        logger.warning("No Authorization header provided for logout")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header required"
+        )
+    
+    if not authorization.startswith("Bearer "):
+        logger.warning("Invalid Authorization header format for logout")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format"
+        )
+    
     try:
         # En JWT no hay logout real en el backend, pero el BFF puede hacer limpieza
         # Por ejemplo, invalidar cache específico del usuario

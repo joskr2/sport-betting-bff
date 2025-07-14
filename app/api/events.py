@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Query, Depends, status
 from typing import List, Optional
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.models.schemas import EventSummary, EventDetail, DataResponse
 from app.services.backend_service import backend_service
@@ -76,12 +76,12 @@ async def get_events(
 
         # Preparar respuesta enriquecida
         response_data = {
-            "events": [event.dict() for event in final_events],
+            "events": [event.model_dump() for event in final_events],
             "total_count": len(filtered_events),
             "filtered_count": len(final_events),
             "cache_info": {
                 "cached": False,  # Podríamos verificar si vino del cache
-                "cache_expires_at": datetime.utcnow() + timedelta(minutes=5)
+                "cache_expires_at": datetime.now(timezone.utc) + timedelta(minutes=5)
             }
         }
 
@@ -154,7 +154,7 @@ async def get_event_detail(
 
         # Agregar información enriquecida que solo el BFF puede calcular
         enriched_data = {
-            **event_detail.dict(),
+            **event_detail.model_dump(),
             "recommendations": _get_betting_recommendations(event_detail),
             "related_events": await _get_related_events(event_id),
             "social_metrics": _calculate_social_metrics(event_detail),
@@ -219,7 +219,7 @@ async def get_popular_events(limit: int = Query(10, ge=1, le=50)):
             data={
                 "events": popular_events,
                 "algorithm_version": "1.0",
-                "last_updated": datetime.utcnow().isoformat()
+                "last_updated": datetime.now(timezone.utc).isoformat()
             }
         )
 

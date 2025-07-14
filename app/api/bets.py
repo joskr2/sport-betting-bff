@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional, Dict, Any
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -100,15 +100,15 @@ async def create_bet(
     token = credentials.credentials
     
     # Generar ID único para auditoría
-    transaction_id = f"bet_{datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')}"
+    transaction_id = f"bet_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
     
     try:
         logger.info(f"Creating bet [Transaction: {transaction_id}] - Event: {bet_request.event_id}, Amount: {bet_request.amount}")
         
         # Paso 1: Validaciones exhaustivas del BFF
-        validation_start = datetime.utcnow()
+        validation_start = datetime.now(timezone.utc)
         validation_errors = await _validate_bet_request(bet_request, token)
-        validation_time = (datetime.utcnow() - validation_start).total_seconds()
+        validation_time = (datetime.now(timezone.utc) - validation_start).total_seconds()
         
         if validation_errors:
             logger.warning(f"Bet validation failed [Transaction: {transaction_id}]: {validation_errors}")
@@ -135,7 +135,7 @@ async def create_bet(
             )
         
         # Paso 3: Crear apuesta en el backend
-        backend_start = datetime.utcnow()
+        backend_start = datetime.now(timezone.utc)
         backend_data = {
             "eventId": bet_request.event_id,
             "selectedTeam": bet_request.selected_team,
@@ -143,7 +143,7 @@ async def create_bet(
         }
         
         backend_response = await backend_service.create_bet(backend_data, token)
-        backend_time = (datetime.utcnow() - backend_start).total_seconds()
+        backend_time = (datetime.now(timezone.utc) - backend_start).total_seconds()
         
         # Paso 4: Transformar respuesta del backend al formato del BFF
         bet_response = BetResponse(
@@ -175,7 +175,7 @@ async def create_bet(
         
         # Paso 6: Preparar respuesta enriquecida
         response_data = {
-            **bet_response.dict(),
+            **bet_response.model_dump(),
             "transaction_id": transaction_id,
             "confirmation_code": f"BET{bet_response.id:06d}",
             "processing_time": {
@@ -239,8 +239,17 @@ async def get_user_bets(
             bets_task = backend_service.get_user_bets(token, backend_params)
             stats_task = backend_service.get_user_bet_stats(token)
             
-            # Ejecutar ambas peticiones en paralelo
-            bets_data, stats_data = await asyncio.gather(bets_task, stats_task)
+            # Ejecutar ambas peticiones en paralelo con manejo de errores
+            try:
+                bets_data, stats_data = await asyncio.gather(bets_task, stats_task)
+            except HTTPException as e:
+                # Si falla alguna llamada, manejar el error apropiadamente
+                if e.status_code == 401:
+                    logger.warning("Authentication failed in parallel calls")
+                    raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
+                else:
+                    logger.warning(f"Error in parallel calls: {e.detail}")
+                    raise e
         else:
             bets_data = await backend_service.get_user_bets(token, backend_params)
             stats_data = None
@@ -274,7 +283,7 @@ async def get_user_bets(
         
         # Preparar respuesta
         response_data = {
-            "bets": [bet.dict() for bet in paginated_bets],
+            "bets": [bet.model_dump() for bet in paginated_bets],
             "pagination": {
                 "current_page": page,
                 "page_size": page_size,
@@ -334,14 +343,20 @@ async def get_betting_dashboard(
         }
         
         # Ejecutar todas las peticiones en paralelo
-        dashboard_start = datetime.utcnow()
+        dashboard_start = datetime.now(timezone.utc)
         dashboard_results = await asyncio.gather(
             *dashboard_tasks.values(),
             return_exceptions=True
         )
-        dashboard_time = (datetime.utcnow() - dashboard_start).total_seconds()
+        dashboard_time = (datetime.now(timezone.utc) - dashboard_start).total_seconds()
         
         # Procesar resultados y manejar errores parciales
+        # Verificar si hay errores críticos de autenticación
+        for i, result in enumerate(dashboard_results):
+            if isinstance(result, HTTPException) and result.status_code == 401:
+                logger.warning("Authentication failed in dashboard request")
+                raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
+        
         profile_data = dashboard_results[0] if not isinstance(dashboard_results[0], Exception) else None
         recent_bets_data = dashboard_results[1] if not isinstance(dashboard_results[1], Exception) else []
         stats_data = dashboard_results[2] if not isinstance(dashboard_results[2], Exception) else None
@@ -354,7 +369,7 @@ async def get_betting_dashboard(
         
         # Agregar metadatos del BFF
         dashboard_data["metadata"] = {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "processing_time_ms": round(dashboard_time * 1000, 2),
             "data_sources": len(dashboard_tasks),
             "cache_status": "fresh"  # Podrías verificar el estado del cache aquí
@@ -386,7 +401,7 @@ async def cancel_bet(
     validaciones especiales y auditoría detallada.
     """
     token = credentials.credentials
-    transaction_id = f"cancel_{bet_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')}"
+    transaction_id = f"cancel_{bet_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
     
     try:
         logger.info(f"Canceling bet {bet_id} [Transaction: {transaction_id}]")
@@ -420,7 +435,7 @@ async def cancel_bet(
             data={
                 **backend_response,
                 "transaction_id": transaction_id,
-                "cancelled_at": datetime.utcnow().isoformat()
+                "cancelled_at": datetime.now(timezone.utc).isoformat()
             }
         )
         
@@ -599,7 +614,7 @@ async def _audit_bet_transaction(transaction_id: str, bet_data: BetCreationReque
     """
     audit_entry = {
         "transaction_id": transaction_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "operation": "create_bet",
         "status": "success",
         "request_data": {
@@ -629,7 +644,7 @@ async def _audit_failed_bet_attempt(transaction_id: str, bet_data: BetCreationRe
     """Audita intentos fallidos de crear apuestas."""
     audit_entry = {
         "transaction_id": transaction_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "operation": "create_bet",
         "status": "failed",
         "error_message": error_message,
@@ -665,7 +680,7 @@ def _calculate_time_remaining(event_date: Optional[str]) -> Optional[str]:
     
     try:
         event_datetime = datetime.fromisoformat(event_date.replace("Z", "+00:00"))
-        time_diff = event_datetime - datetime.utcnow()
+        time_diff = event_datetime - datetime.now(timezone.utc)
         
         if time_diff.total_seconds() < 0:
             return "Event started"
@@ -914,7 +929,7 @@ async def _audit_bet_cancellation(transaction_id: str, bet_id: int,
     """Audita la cancelación de una apuesta."""
     audit_entry = {
         "transaction_id": transaction_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "operation": "cancel_bet",
         "status": "success",
         "bet_id": bet_id,
@@ -929,7 +944,7 @@ async def _audit_failed_cancellation(transaction_id: str, bet_id: int,
     """Audita intentos fallidos de cancelación."""
     audit_entry = {
         "transaction_id": transaction_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "operation": "cancel_bet",
         "status": "failed",
         "bet_id": bet_id,

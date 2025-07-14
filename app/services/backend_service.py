@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 from fastapi import HTTPException, status
 import logging
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from cachetools import TTLCache
 import hashlib
 
@@ -94,7 +94,7 @@ class BackendService:
         Método centralizado para hacer peticiones HTTP con todas las optimizaciones.
         """
         url = f"{self.base_url}{endpoint}"
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         # Generar clave de cache
         cache_key = None
@@ -128,7 +128,7 @@ class BackendService:
                 )
 
                 # Calcular tiempo de respuesta para estadísticas
-                response_time = (datetime.utcnow() -
+                response_time = (datetime.now(timezone.utc) -
                                  start_time).total_seconds()
                 self._update_average_response_time(response_time)
 
@@ -157,6 +157,11 @@ class BackendService:
                 raise HTTPException(
                     status_code=503, detail="Backend service unavailable")
 
+            except HTTPException as e:
+                # Re-lanzar HTTPExceptions del _handle_response sin modificar
+                self.stats["errors"] += 1
+                raise e
+            
             except Exception as e:
                 self.stats["errors"] += 1
                 logger.error(f"Unexpected error when calling {url}: {str(e)}")

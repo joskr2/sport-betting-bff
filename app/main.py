@@ -3,7 +3,7 @@ import logging
 import time
 import traceback
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 import logging
@@ -246,7 +246,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "success": False,
             "error": _get_error_type_from_status_code(exc.status_code),
             "message": str(exc.detail),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "path": str(request.url.path)
         }
     )
@@ -282,7 +282,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 "validation_errors": validation_errors,
                 "error_count": len(validation_errors)
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "path": str(request.url.path)
         }
     )
@@ -312,7 +312,7 @@ async def general_exception_handler(request: Request, exc: Exception):
             "success": False,
             "error": "InternalServerError",
             "message": error_detail,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "path": str(request.url.path),
             "debug_info": {
                 "error_type": type(exc).__name__,
@@ -357,7 +357,7 @@ async def health_check():
 
     health_data = {
         "status": "healthy" if backend_healthy else "degraded",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": settings.app_version,
         "environment": "development" if settings.debug else "production",
         "backend": {
@@ -403,7 +403,7 @@ async def root():
             "betting": "/api/bets"
         },
         "status": "operational",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -425,7 +425,7 @@ async def get_api_stats():
             "cache_enabled": settings.enable_cache,
             "cors_origins": len(settings.allowed_origins)
         },
-        "generated_at": datetime.utcnow().isoformat()
+        "generated_at": datetime.now(timezone.utc).isoformat()
     }
 
 # === FUNCIONES HELPER ===
