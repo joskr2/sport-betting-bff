@@ -1,5 +1,5 @@
 # app/models/schemas.py
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -47,7 +47,7 @@ class UserRegistrationRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100,
                            description="Nombre completo")
 
-    @field_validator('password')
+    @validator('password')
     @classmethod
     def validate_password_strength(cls, v):
         """
@@ -66,7 +66,7 @@ class UserRegistrationRequest(BaseModel):
             raise ValueError('Password must contain at least one digit')
         return v
 
-    @field_validator('full_name')
+    @validator('full_name')
     @classmethod
     def validate_full_name(cls, v):
         """Validar que el nombre no contenga caracteres especiales problemáticos."""
@@ -152,7 +152,7 @@ class BetCreationRequest(BaseModel):
     amount: float = Field(..., gt=0, le=10000,
                           description="Monto de la apuesta")
 
-    @field_validator('amount')
+    @validator('amount')
     @classmethod
     def validate_amount_precision(cls, v):
         """Validar que el monto tenga máximo 2 decimales."""

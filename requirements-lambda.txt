@@ -1,9 +1,26 @@
-# Requirements completos para AWS Lambda
-# Todas las dependencias necesarias
+# =======================================================================
+# 🚀 AWS Lambda Requirements - Stable Version
+# =======================================================================
+# Lambda-specific requirements with stable, compatible versions
 
-fastapi==0.104.1
-pydantic==2.5.0
-httpx==0.25.2
-cachetools==5.3.0
+# === Core FastAPI Stack ===
+fastapi==0.68.0
+starlette==0.14.2
+
+# === Data Validation ===
+# Using Pydantic v1 for Lambda compatibility (no native dependencies)
+pydantic==1.10.12
+
+# === HTTP Client ===
+httpx==0.24.1
+
+# === Lambda Adapter ===
+mangum==0.17.0
+
+# === Utilities ===
 python-dotenv==1.0.0
-mangum==0.19.0
+typing-extensions==4.4.0
+
+# === Async Support ===
+anyio<5.0,>=3.0
+sniffio>=1.1

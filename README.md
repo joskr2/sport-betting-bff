@@ -1,79 +1,76 @@
-# ⚡ Sports Betting BFF
+# 🏆 Sports Betting BFF - FastAPI
 
-Backend for Frontend (BFF) desarrollado en **FastAPI** para aplicaciones de apuestas deportivas. Optimizado para **AWS Lambda** con **Mangum**.
+Backend for Frontend (BFF) desarrollado en **FastAPI** para aplicaciones de apuestas deportivas. Optimizado para **AWS Lambda** con arquitectura serverless.
 
-![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green)
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
 ![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-orange)
-![Tests](https://img.shields.io/badge/Tests-27%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen)
 
 ---
 
-## 🎯 ¿Qué es este BFF?
+## 🎯 Características Principales
 
-Un **Backend for Frontend** que actúa como capa inteligente entre tu frontend y la API de apuestas deportivas, proporcionando:
+Un **Backend for Frontend** que actúa como capa inteligente entre tu frontend y la API de apuestas deportivas:
 
 - ✅ **Agregación de datos** de múltiples fuentes
 - ✅ **Cache inteligente** con TTL configurable  
 - ✅ **Análisis de popularidad** de eventos deportivos
 - ✅ **Validaciones adicionales** y transformaciones
 - ✅ **Rate limiting** y middleware de seguridad
-- ✅ **Optimizado para AWS Lambda** con cold start mínimo
+- ✅ **Optimizado para AWS Lambda** con cold start mínimo (3.5MB)
+- ✅ **Pydantic v2** para desarrollo, **v1** para Lambda (compatibilidad)
 
 ---
 
-## 🚀 Deploy en AWS Lambda (Recomendado)
+## 🚀 Deploy en AWS Lambda
 
 ### 📋 Prerrequisitos
 - Cuenta de AWS con acceso a Lambda
-- Python 3.11+
+- Python 3.10+
 - Git
 
 ### 🔧 Pasos para Deploy
 
-#### 1. **Clonar y Configurar**
+#### 1. **Preparar el Artifact**
 ```bash
-git clone <repository-url>
-cd bff-fastapi
-
-# Crear deployment package
-chmod +x build_lambda.sh
+# Generar el package para Lambda
 ./build_lambda.sh
+
+# Probar el artifact localmente
+python3 test_lambda.py
 ```
 
 #### 2. **Crear Función Lambda**
 - **Runtime**: `Python 3.10`
 - **Handler**: `lambda_function.lambda_handler`
-- **Memory**: `128 MB`
+- **Memory**: `256 MB`
 - **Timeout**: `30 segundos`
 - **Architecture**: `x86_64`
 
 #### 3. **Subir Package**
-Sube el archivo `aws_lambda_artifact.zip` (836KB) generado a tu función Lambda.
+Sube el archivo `lambda_artifact.zip` (3.5MB) generado.
 
 #### 4. **Variables de Entorno**
 ```bash
-ALLOWED_ORIGINS=*
-DEBUG=false
-BACKEND_API_URL=https://tu-api-externa.com
+BACKEND_API_URL=https://api-kurax-demo-jos.uk
 JWT_SECRET=tu-clave-secreta-super-segura
-CACHE_TTL_SECONDS=600
-RATE_LIMIT_PER_MINUTE=30
+DEBUG=false
 ```
 
-#### 5. **API Gateway (Opcional)**
+#### 5. **API Gateway**
 - Crear API Gateway REST API
 - Configurar proxy integration con Lambda
-- Habilitar CORS si es necesario
+- Habilitar CORS
 
 ### 🎉 ¡Listo!
 Tu BFF estará disponible en:
 ```
-https://[example-url].execute-api.us-east-1.amazonaws.com/prod/
+https://[api-id].execute-api.us-east-1.amazonaws.com/prod/
 ```
 
 **Health Check**: `GET /health`  
-**Documentación**: `GET /docs` *(solo en desarrollo)*
+**Documentación**: `GET /docs`
 
 ---
 
@@ -102,6 +99,9 @@ pytest
 # Tests específicos
 pytest tests/test_health.py -v
 pytest tests/test_events.py -v
+
+# Test del artifact Lambda
+python3 test_lambda.py
 ```
 
 ---
@@ -113,6 +113,7 @@ pytest tests/test_events.py -v
 |----------|--------|-------------|
 | `/health` | GET | Health check del sistema |
 | `/` | GET | Información de la API |
+| `/api/stats` | GET | Estadísticas de la aplicación |
 
 ### 🔐 Autenticación  
 | Endpoint | Método | Descripción |
@@ -120,6 +121,7 @@ pytest tests/test_events.py -v
 | `/api/auth/register` | POST | Registro de usuarios |
 | `/api/auth/login` | POST | Login de usuarios |
 | `/api/auth/profile` | GET | Perfil del usuario |
+| `/api/auth/logout` | POST | Logout del usuario |
 
 ### 🏆 Eventos Deportivos
 | Endpoint | Método | Descripción |
@@ -138,19 +140,20 @@ pytest tests/test_events.py -v
 
 ---
 
-## 🏗️ Estructura
+## 🏗️ Estructura del Proyecto
 
 ```
 bff-fastapi/
 ├── 📁 app/                     # Código principal
-│   ├── 🚀 main.py              # FastAPI app + Mangum
+│   ├── 🚀 main.py              # FastAPI app + configuración
 │   ├── 📁 api/                 # Endpoints (auth, events, bets)
-│   ├── 📁 core/                # Configuración
+│   ├── 📁 core/                # Configuración y settings
 │   ├── 📁 models/              # Schemas Pydantic
 │   └── 📁 services/            # Lógica de negocio
 ├── 📋 requirements.txt         # Dependencias desarrollo
 ├── 📋 requirements-lambda.txt  # Dependencias Lambda
 ├── 🔧 build_lambda.sh          # Script build Lambda
+├── 🧪 test_lambda.py           # Testing del artifact
 ├── 🐍 lambda_function.py       # Entry point Lambda
 └── 📁 tests/                   # Suite de testing
 ```
@@ -161,20 +164,21 @@ bff-fastapi/
 
 ### ⚡ Lambda (Producción)
 ```txt
-fastapi==0.104.1      # Framework web
-pydantic==1.10.22     # Validación
-httpx==0.25.2         # Cliente HTTP
-cachetools==5.3.0     # Cache TTL
-python-dotenv==1.0.0  # Variables entorno
-mangum==0.19.0        # ASGI adapter Lambda
+fastapi==0.68.0           # Framework web (compatible)
+pydantic==1.10.12         # Validación (sin deps nativas)
+httpx==0.24.1             # Cliente HTTP
+mangum==0.17.0            # ASGI adapter Lambda
+python-dotenv==1.0.0      # Variables entorno
 ```
 
 ### 🔨 Desarrollo Local
 ```txt
 # Todo lo anterior +
-uvicorn[standard]>=0.24.0  # Servidor desarrollo
-pytest>=7.4.0             # Testing
-structlog>=23.2.0          # Logging avanzado
+fastapi>=0.100.0          # Versión moderna
+pydantic>=2.0.0           # Pydantic v2
+uvicorn[standard]>=0.20.0 # Servidor desarrollo
+pytest>=7.0.0             # Testing
+structlog>=23.0.0          # Logging avanzado
 ```
 
 ---
@@ -204,16 +208,34 @@ Calcula score de popularidad basado en:
 ## 📊 Performance
 
 **Benchmarks en Lambda:**
-- 🕐 **Cold Start**: ~280ms (primera ejecución)
-- ⚡ **Warm**: ~45ms (ejecuciones siguientes)
-- 💾 **Memory**: 57MB utilizada de 128MB
-- 📦 **Package Size**: 836KB
+- 🕐 **Cold Start**: ~500ms (primera ejecución)
+- ⚡ **Warm**: ~50ms (ejecuciones siguientes)
+- 💾 **Memory**: 64MB utilizada de 256MB
+- 📦 **Package Size**: 3.5MB
+
+---
+
+## 🔧 Scripts Disponibles
+
+```bash
+# Construir artifact para Lambda
+./build_lambda.sh
+
+# Probar artifact localmente
+python3 test_lambda.py
+
+# Desarrollo local
+uvicorn app.main:app --reload
+
+# Tests
+pytest
+```
 
 ---
 
 ## 🔍 Troubleshooting
 
-### Error Común: ImportModuleError
+### Error Común: ImportError
 ```bash
 # Verificar que el package tiene todas las dependencias
 ./build_lambda.sh
@@ -222,14 +244,37 @@ Calcula score de popularidad basado en:
 Handler: lambda_function.lambda_handler
 ```
 
-### Variables de Entorno
+### Health Check
 ```bash
-# Verificar configuración
+# Verificar que la función funciona
 curl https://tu-lambda-url.com/health
 ```
+
+### Dependencies Issues
+El proyecto maneja dos versiones de Pydantic:
+- **Desarrollo**: Pydantic v2 (moderno)
+- **Lambda**: Pydantic v1 (compatible)
 
 ---
 
 ## 📄 Licencia
 
 MIT License - Libre para uso comercial y personal.
+
+---
+
+## 🤝 Contribuciones
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Fork el proyecto
+2. Crea una rama para tu feature
+3. Commit tus cambios
+4. Push a la rama
+5. Abre un Pull Request
+
+---
+
+## 📞 Soporte
+
+¿Tienes preguntas o necesitas ayuda? Crea un issue en el repositorio.
