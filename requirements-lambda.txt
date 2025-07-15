@@ -1,14 +1,14 @@
 # =======================================================================
-# 🚀 AWS Lambda Requirements - Minimal Version
+# 🚀 AWS Lambda Requirements - Compatible Versions
 # =======================================================================
-# Only dependencies actually used by the project
+# Dependencies with tested compatibility for Python 3.10 Lambda runtime
 
-# === Core FastAPI Stack ===
+# === Core FastAPI Stack - Known working versions ===
 fastapi==0.68.0
 starlette==0.14.2
 
 # === Data Validation ===
-pydantic==1.10.12
+pydantic==1.8.2
 
 # === HTTP Client ===
 httpx==0.24.1
@@ -18,16 +18,16 @@ mangum==0.17.0
 
 # === Utilities ===
 python-dotenv==1.0.0
-typing-extensions==4.6.0
+typing-extensions==3.10.0
 
 # === Caching (used by backend_service.py) ===
-cachetools==5.3.3
+cachetools==5.3.2
 
-# === Async Support (required by httpx) ===
-anyio>=3.0,<5.0
+# === Async Support ===
+anyio>=3.0,<4.0
 sniffio>=1.1
 
-# === HTTP Dependencies (required by httpx) ===
+# === HTTP Dependencies ===
 httpcore>=0.15.0,<0.18.0
 h11>=0.13,<0.15
 certifi

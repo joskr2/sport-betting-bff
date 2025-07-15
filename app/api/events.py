@@ -9,10 +9,10 @@ from app.services.backend_service import backend_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/events", tags=["Events"])
+router = APIRouter(tags=["Events"])
 
 
-@router.get("/", response_model=DataResponse)
+@router.get("/events", response_model=DataResponse)
 async def get_events(
     category: Optional[str] = Query(
         None, description="Filtrar por categoría de deporte"),
@@ -104,7 +104,7 @@ async def get_events(
         )
 
 
-@router.get("/{event_id}", response_model=DataResponse)
+@router.get("/events/{event_id}", response_model=DataResponse)
 async def get_event_detail(
     event_id: int,
     include_recent_bets: bool = Query(
@@ -177,7 +177,7 @@ async def get_event_detail(
         )
 
 
-@router.get("/trending/popular", response_model=DataResponse)
+@router.get("/events/trending/popular", response_model=DataResponse)
 async def get_popular_events(limit: int = Query(10, ge=1, le=50)):
     """
     Obtener eventos populares basados en algoritmo del BFF.
