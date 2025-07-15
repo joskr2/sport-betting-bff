@@ -50,6 +50,11 @@ async def lifespan(app: FastAPI):
     try:
         logger.info(
             f"Starting Sports Betting BFF version {settings.app_version}")
+        
+        # Log de configuración de seguridad al inicio
+        logger.info(f"Environment: {'development' if settings.debug else 'production'}")
+        logger.info(f"CORS Origins: {len(settings.allowed_origins)} configured")
+        logger.info(f"Trusted Hosts: {len(settings.allowed_hosts)} configured")
 
         # Verificar conectividad con el backend
         await _verify_backend_connectivity()
@@ -58,6 +63,15 @@ async def lifespan(app: FastAPI):
         await _initialize_application_components()
 
         logger.info("BFF application started successfully")
+        
+        # Verificación final de seguridad
+        if not settings.debug and "*" in settings.allowed_origins:
+            logger.error("🚨 SECURITY ALERT: Wildcard CORS detected in production!")
+            raise Exception("Wildcard CORS not allowed in production")
+        
+        if not settings.debug and "*" in settings.allowed_hosts:
+            logger.error("🚨 SECURITY ALERT: Wildcard TrustedHost detected in production!")
+            raise Exception("Wildcard TrustedHost not allowed in production")
 
         # La aplicación está lista para recibir peticiones
         yield
@@ -115,19 +129,30 @@ if not settings.debug:
     # En producción, solo permitir hosts específicos para prevenir ataques de host header
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=["*"]
+        allowed_hosts=settings.allowed_hosts
     )
+    logger.info(f"TrustedHost middleware enabled with hosts: {settings.allowed_hosts}")
+else:
+    logger.info("TrustedHost middleware disabled in development mode")
 
-# 2. Middleware de CORS (Cross-Origin Resource Sharing)
+# 2. Middleware de CORS (Cross-Origin Resource Sharing) - Configuración Segura
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=settings.allowed_headers,  # Headers específicos, no wildcard
     # Headers personalizados para el frontend
-    expose_headers=["X-Total-Count", "X-Filtered-Count"],
+    expose_headers=["X-Total-Count", "X-Filtered-Count", "X-Request-ID", "X-Process-Time"],
 )
+
+# Log de configuración CORS para debugging
+logger.info(f"CORS configured with origins: {settings.allowed_origins}")
+logger.info(f"CORS headers allowed: {settings.allowed_headers}")
+if settings.debug:
+    logger.warning("⚠️ CORS is in development mode - more permissive settings")
+else:
+    logger.info("🔒 CORS is in production mode - restricted settings")
 
 # 3. Middleware personalizado para logging de peticiones
 
@@ -402,6 +427,12 @@ async def root():
             "events": "/api/events",
             "betting": "/api/bets"
         },
+        "security": {
+            "cors_origins_count": len(settings.allowed_origins),
+            "trusted_hosts_count": len(settings.allowed_hosts),
+            "environment": "development" if settings.debug else "production",
+            "https_required": not settings.debug
+        },
         "status": "operational",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
@@ -470,9 +501,29 @@ async def _initialize_application_components():
     # Verificar configuraciones críticas
     if not settings.jwt_secret_key or len(settings.jwt_secret_key) < 32:
         raise ValueError("JWT secret key must be at least 32 characters long")
+    
+    # Validar configuración CORS
+    if not settings.allowed_origins:
+        raise ValueError("ALLOWED_ORIGINS must be configured")
+    
+    # Verificar que producción no use wildcards
+    if not settings.debug:
+        if "*" in settings.allowed_origins:
+            raise ValueError("Wildcard CORS origins not allowed in production")
+        if "*" in settings.allowed_hosts:
+            raise ValueError("Wildcard trusted hosts not allowed in production")
 
     # Inicializar otros componentes si es necesario
     logger.info("Application components initialized successfully")
+    
+    # Log final de configuración para auditoria
+    logger.info(f"Security Configuration Summary:")
+    logger.info(f"  - Debug Mode: {settings.debug}")
+    logger.info(f"  - CORS Origins: {len(settings.allowed_origins)} domains")
+    logger.info(f"  - Trusted Hosts: {len(settings.allowed_hosts)} hosts")
+    logger.info(f"  - JWT Secret Length: {len(settings.jwt_secret_key)} chars")
+    logger.info(f"  - Cache Enabled: {settings.enable_cache}")
+    logger.info(f"  - Rate Limiting: {settings.rate_limit_per_minute}/min")
 
 
 async def _cleanup_application_resources():
