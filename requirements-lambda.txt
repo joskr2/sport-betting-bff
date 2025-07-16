@@ -18,7 +18,7 @@ mangum==0.17.0
 
 # === Utilities ===
 python-dotenv==1.0.0
-typing-extensions==3.10.0
+typing-extensions==4.8.0
 
 # === Caching (used by backend_service.py) ===
 cachetools==5.3.2

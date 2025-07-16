@@ -76,7 +76,7 @@ async def get_events(
 
         # Preparar respuesta enriquecida
         response_data = {
-            "events": [event.model_dump() for event in final_events],
+            "events": [event.dict() for event in final_events],
             "total_count": len(filtered_events),
             "filtered_count": len(final_events),
             "cache_info": {
@@ -154,7 +154,7 @@ async def get_event_detail(
 
         # Agregar información enriquecida que solo el BFF puede calcular
         enriched_data = {
-            **event_detail.model_dump(),
+            **event_detail.dict(),
             "recommendations": _get_betting_recommendations(event_detail),
             "related_events": await _get_related_events(event_id),
             "social_metrics": _calculate_social_metrics(event_detail),

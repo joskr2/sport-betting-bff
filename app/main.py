@@ -141,9 +141,23 @@ app.add_middleware(
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=settings.allowed_headers,  # Headers específicos, no wildcard
+    allow_headers=settings.allowed_headers + [
+        "Authorization", 
+        "Content-Type", 
+        "Accept", 
+        "Origin", 
+        "X-Requested-With"
+    ],  # Headers específicos, no wildcard
     # Headers personalizados para el frontend
-    expose_headers=["X-Total-Count", "X-Filtered-Count", "X-Request-ID", "X-Process-Time"],
+    expose_headers=[
+        "X-Total-Count", 
+        "X-Filtered-Count", 
+        "X-Request-ID", 
+        "X-Process-Time",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Methods", 
+        "Access-Control-Allow-Headers"
+    ],
 )
 
 # Log de configuración CORS para debugging

@@ -82,7 +82,7 @@ async def preview_bet(
             detail="Failed to generate bet preview"
         )
 
-@router.post("/", response_model=DataResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=DataResponse, status_code=status.HTTP_201_CREATED)
 async def create_bet(
     bet_request: BetCreationRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
@@ -158,7 +158,7 @@ async def create_bet(
             created_at=backend_response["createdAt"],
             # Información adicional que el BFF puede calcular
             can_be_cancelled=backend_response.get("canBeCancelled", False),
-            time_remaining=_calculate_time_remaining(backend_response["eventDate"])
+            time_remaining=_calculate_time_remaining(backend_response.get("eventDate"))
         )
         
         # Paso 5: Auditoría completa de la transacción
@@ -175,7 +175,7 @@ async def create_bet(
         
         # Paso 6: Preparar respuesta enriquecida
         response_data = {
-            **bet_response.model_dump(),
+            **bet_response.dict(),
             "transaction_id": transaction_id,
             "confirmation_code": f"BET{bet_response.id:06d}",
             "processing_time": {
@@ -283,7 +283,7 @@ async def get_user_bets(
         
         # Preparar respuesta
         response_data = {
-            "bets": [bet.model_dump() for bet in paginated_bets],
+            "bets": [bet.dict() for bet in paginated_bets],
             "pagination": {
                 "current_page": page,
                 "page_size": page_size,

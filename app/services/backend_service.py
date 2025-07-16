@@ -305,22 +305,38 @@ class BackendService:
     async def create_bet(self, bet_data: Dict[str, Any], auth_token: str) -> Dict[str, Any]:
         """Crear nueva apuesta."""
         headers = {"Authorization": f"Bearer {auth_token}"}
-        return await self._make_request("POST", "/api/bets", data=bet_data, headers=headers, use_cache=False)
+        response = await self._make_request("POST", "/api/bets", data=bet_data, headers=headers, use_cache=False)
+        # La API externa devuelve {success: true, data: {...}}
+        if isinstance(response, dict) and "data" in response:
+            return response["data"]
+        return response
 
     async def get_user_bets(self, auth_token: str, params: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """Obtener apuestas del usuario con filtros opcionales."""
         headers = {"Authorization": f"Bearer {auth_token}"}
-        return await self._make_request("GET", "/api/bets/my-bets", params=params, headers=headers, use_cache=False)
+        response = await self._make_request("GET", "/api/bets/my-bets", params=params, headers=headers, use_cache=False)
+        # La API externa devuelve {success: true, data: [...]}
+        if isinstance(response, dict) and "data" in response:
+            return response["data"]
+        return response if isinstance(response, list) else []
 
     async def get_user_bet_stats(self, auth_token: str) -> Dict[str, Any]:
         """Obtener estadísticas de apuestas del usuario."""
         headers = {"Authorization": f"Bearer {auth_token}"}
-        return await self._make_request("GET", "/api/bets/my-stats", headers=headers, use_cache=False)
+        response = await self._make_request("GET", "/api/bets/my-stats", headers=headers, use_cache=False)
+        # La API externa devuelve {success: true, data: {...}}
+        if isinstance(response, dict) and "data" in response:
+            return response["data"]
+        return response
 
     async def preview_bet(self, bet_data: Dict[str, Any], auth_token: str) -> Dict[str, Any]:
         """Previsualizar apuesta antes de crearla."""
         headers = {"Authorization": f"Bearer {auth_token}"}
-        return await self._make_request("POST", "/api/bets/preview", data=bet_data, headers=headers, use_cache=False)
+        response = await self._make_request("POST", "/api/bets/preview", data=bet_data, headers=headers, use_cache=False)
+        # La API externa devuelve {success: true, data: {...}}
+        if isinstance(response, dict) and "data" in response:
+            return response["data"]
+        return response
 
     # === Métodos de Utilidad ===
 
